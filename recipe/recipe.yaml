@@ -29,10 +29,12 @@ build:
       - ${{ library }}lib/ocaml/site-lib/**/*.cmx
       - ${{ library }}lib/ocaml/site-lib/**/*.cmt
       - ${{ library }}lib/ocaml/site-lib/**/*.cmti
+  script: build.sh
 
 requirements:
   build:
     - ${{ compiler('ocaml') }}
+    - ${{ stdlib('c') }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}make
     - ${{ m2 }}sed
