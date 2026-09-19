@@ -77,11 +77,14 @@ if [[ -n "${TOPFIND_SRC}" ]]; then
   mv "${TOPFIND_SRC}" "${LIBDIR}/lib/ocaml/"
 fi
 
-# For non-unix: use forward slashes consistently (rattler-build uses forward slashes for prefix)
+# For non-unix: use forward slashes consistently in findlib.conf
 if is_non_unix; then
-  # Write findlib.conf with forward slashes - Windows OCaml handles this fine
-  sed -i "s@destdir=\"[^\"]*\"@destdir=\"${PREFIX}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
-  sed -i "s@path=\"[^\"]*\"@path=\"${PREFIX}/Library/lib/ocaml;${PREFIX}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
+  # rattler-build hands PREFIX to bash in native (backslash) form on Windows;
+  # findlib.conf is META syntax, where backslash is an escape character.
+  PREFIX_FWD="${PREFIX//\\//}"
+
+  sed -i "s@destdir=\"[^\"]*\"@destdir=\"${PREFIX_FWD}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
+  sed -i "s@path=\"[^\"]*\"@path=\"${PREFIX_FWD}/Library/lib/ocaml;${PREFIX_FWD}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
 
   # Replace build_env with h_env in Makefile.config, keep forward slashes
   sed -i 's@build_env@h_env@g' "${LIBDIR}"/lib/ocaml/site-lib/findlib/Makefile.config
