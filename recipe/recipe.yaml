@@ -33,14 +33,22 @@ build:
 
 requirements:
   build:
-    - ${{ compiler('ocaml') }}
+    - if: unix
+      then:
+        - ${{ compiler('ocaml') }}
+      else:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
     - ${{ stdlib('c') }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}make
     - ${{ m2 }}sed
     - ${{ m2 }}grep
   run_constraints:
-    - ocaml_${{ target_platform }} >=5.4.0
+    - if: unix
+      then:
+        - ocaml_${{ target_platform }} >=5.4.0
+      else:
+        - ocaml_${{ target_platform }} >=5.4.0 ${{ ocaml_toolchain }}_*
 
 tests:
   - package_contents:
