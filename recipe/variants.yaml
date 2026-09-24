@@ -1,13 +1,7 @@
-ocaml_compiler:
-  - ocaml
 ocaml_compiler_version:
   - "5.4.0"
 
-# Which ocaml_win-64 track this lane links against. ocaml_win-64 publishes
-# gcc_* and vs2022_* at the same build number, so an unpinned spec is settled
-# by upload order. Deliberately NOT c_compiler: that key already carries the
-# unix C compiler meaning in this recipe's native test requirements.
-ocaml_toolchain:
+c_compiler:
   - if: not unix
     then:
       - vs2022

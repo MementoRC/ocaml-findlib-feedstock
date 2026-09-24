@@ -2,6 +2,9 @@ context:
   build_number: 0
   name: ocaml-findlib
   version: 1.9.8
+
+  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
   library: ${{ "Library/" if not unix else "" }}
   m2: ${{ "m2-" if not unix else "" }}
   sh: ${{ "sh" if unix else "bat" }}
@@ -33,22 +36,18 @@ build:
 
 requirements:
   build:
-    - if: unix
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - if: not unix and c_compiler == "gcc"
       then:
-        - ${{ compiler('ocaml') }}
+        - ${{ stdlib("m2w64_c") }}
       else:
-        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ ocaml_toolchain }}_*
-    - ${{ stdlib('c') }}
+        - ${{ stdlib("c") }}
     - ${{ m2 }}bash >=5.2
     - ${{ m2 }}make
     - ${{ m2 }}sed
     - ${{ m2 }}grep
   run_constraints:
-    - if: unix
-      then:
-        - ocaml_${{ target_platform }} >=5.4.0
-      else:
-        - ocaml_${{ target_platform }} >=5.4.0 ${{ ocaml_toolchain }}_*
+    - ocaml_${{ target_platform }} >=${{ ocaml_compiler_version }} ${{ c_toolchain }}
 
 tests:
   - package_contents:
