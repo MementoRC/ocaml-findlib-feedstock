@@ -1,0 +1,92 @@
+context:
+  build_number: 0
+  name: ocaml-findlib
+  version: 1.9.8
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: http://download.camlcity.org/download/findlib-${{ version }}.tar.gz
+  sha256: 662c910f774e9fee3a19c4e057f380581ab2fc4ee52da4761304ac9c31b8869d
+
+build:
+  number: ${{ build_number }}
+  skip:
+    - win
+  prefix_detection:
+    force_file_type:
+      text:
+        - lib/ocaml/site-lib/findlib/Makefile.config
+        - lib/ocaml/topfind
+        - etc/findlib.conf
+    ignore:
+      # bytecode is a binary format; prefix relocation corrupts it
+      - lib/ocaml/site-lib/**/*.cma
+      - lib/ocaml/site-lib/**/*.cmi
+      - lib/ocaml/site-lib/**/*.cmx
+      - lib/ocaml/site-lib/**/*.cmt
+      - lib/ocaml/site-lib/**/*.cmti
+  script: build.sh
+
+requirements:
+  build:
+    - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
+    - ${{ stdlib("c") }}
+    - bash >=5.2
+    - make
+    - sed
+    - grep
+  run_constraints:
+    - ocaml_${{ target_platform }} >=${{ ocaml_compiler_version }}
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - ocamlfind
+      files:
+        - etc/findlib.conf
+        - lib/ocaml/site-lib/bytes/META
+        - lib/ocaml/site-lib/findlib/META
+        - lib/ocaml/site-lib/findlib/Makefile.config
+        - lib/ocaml/site-lib/findlib/Makefile.packages
+        - lib/ocaml/site-lib/findlib/findlib.cma
+        - lib/ocaml/site-lib/findlib/findlib.cmxa
+        - lib/ocaml/site-lib/findlib/findlib_top.cma
+        - lib/ocaml/site-lib/findlib/findlib*
+        - lib/ocaml/site-lib/findlib/fl*
+        - lib/ocaml/site-lib/findlib/ocaml_args.cmi
+        - lib/ocaml/site-lib/findlib/topfind.cmi
+        - lib/ocaml/site-lib/findlib/topfind.mli
+        - lib/ocaml/topfind
+        - share/man/man1/ocamlfind.1
+        - share/man/man5/META.5
+        - share/man/man5/findlib.conf.5
+        - share/man/man5/site-lib.5
+        - etc/conda/activate.d/ocaml-findlib_activate.sh
+        - etc/conda/deactivate.d/ocaml-findlib_deactivate.sh
+        - etc/conda/test-files/*
+
+  - script:
+      - ocamlfind install -help
+    requirements:
+      run:
+        - ocaml-compiler
+
+about:
+  homepage: http://projects.camlcity.org/projects/findlib.html
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'OCaml library manager and package finder'
+  documentation: http://projects.camlcity.org/projects/dl/findlib-${{ version }}/doc/guide-html/index.html
+  repository: https://github.com/ocaml/ocamlfind
+
+extra:
+  recipe-maintainers:
+    - dslarm
+    - isuruf
+    - slel
+    - MementoRC
