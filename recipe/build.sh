@@ -17,7 +17,11 @@ fi
 
 source "${RECIPE_DIR}/building/build_functions.sh"
 
-LIBDIR="${PREFIX}"
+if is_non_unix; then
+  LIBDIR="${PREFIX}/Library"
+else
+  LIBDIR="${PREFIX}"
+fi
 
 ./configure \
   -bindir "${LIBDIR}"/bin \
@@ -36,19 +40,39 @@ make install
 
 # Move topfind to correct location and fix hardcoded paths
 # On Unix: topfind is at ${BUILD_PREFIX}/lib/ocaml/topfind
+# On non-unix: topfind is at ${BUILD_PREFIX}/Library/lib/ocaml/topfind
 TOPFIND_SRC=""
 if [[ -f "${BUILD_PREFIX}/lib/ocaml/topfind" ]]; then
   TOPFIND_SRC="${BUILD_PREFIX}/lib/ocaml/topfind"
+elif [[ -f "${BUILD_PREFIX}/Library/lib/ocaml/topfind" ]]; then
+  TOPFIND_SRC="${BUILD_PREFIX}/Library/lib/ocaml/topfind"
 fi
 
 if [[ -n "${TOPFIND_SRC}" ]]; then
   mv "${TOPFIND_SRC}" "${LIBDIR}/lib/ocaml/"
 fi
 
-sed -i "s@${BUILD_PREFIX}@${PREFIX}@g" "${LIBDIR}"/etc/findlib.conf "${LIBDIR}"/lib/ocaml/site-lib/findlib/Makefile.config
+# For non-unix: use forward slashes consistently in findlib.conf
+if is_non_unix; then
+  # rattler-build hands PREFIX to bash in native (backslash) form on Windows;
+  # findlib.conf is META syntax, where backslash is an escape character.
+  PREFIX_FWD="${PREFIX//\\//}"
+
+  sed -i "s@destdir=\"[^\"]*\"@destdir=\"${PREFIX_FWD}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
+  sed -i "s@path=\"[^\"]*\"@path=\"${PREFIX_FWD}/Library/lib/ocaml;${PREFIX_FWD}/Library/lib/ocaml/site-lib\"@g" "${LIBDIR}"/etc/findlib.conf
+
+  # Replace build_env with h_env in Makefile.config, keep forward slashes
+  sed -i 's@build_env@h_env@g' "${LIBDIR}"/lib/ocaml/site-lib/findlib/Makefile.config
+else
+  sed -i "s@${BUILD_PREFIX}@${PREFIX}@g" "${LIBDIR}"/etc/findlib.conf "${LIBDIR}"/lib/ocaml/site-lib/findlib/Makefile.config
+fi
 
 for CHANGE in "activate" "deactivate"
 do
   mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-  cp "${RECIPE_DIR}/scripts/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+  if is_non_unix; then
+    cp "${RECIPE_DIR}/scripts/${CHANGE}.bat" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.bat"
+  else
+    cp "${RECIPE_DIR}/scripts/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+  fi
 done

@@ -1,2 +1,8 @@
 ocaml_compiler_version:
   - "5.4.0"
+
+c_compiler:
+  - if: not unix
+    then:
+      - vs2022
+      - gcc
