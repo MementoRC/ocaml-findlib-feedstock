@@ -29,4 +29,7 @@ ocamlfind list | grep -q findlib
 echo "Testing ocamlfind query findlib..."
 ocamlfind query findlib
 
+echo "Testing ocamlfind query str..."
+ocamlfind query str
+
 echo "=== All cross-compilation tests passed ==="

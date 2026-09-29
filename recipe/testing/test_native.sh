@@ -52,6 +52,18 @@ ocamlfind ocamlc -package findlib -linkpkg -o test_findlib test_hello.ml
 ocamlfind ocamlopt -package findlib -linkpkg -o test_findlib_opt test_hello.ml
 ./test_findlib_opt
 
+# Test linking against the str package (bytecode only; ocamlc needs no C linker)
+echo "Testing linking with str package..."
+ocamlfind query str
+cat > test_link.ml <<'EOF'
+let () = print_string (Str.global_replace (Str.regexp "a") "b" "aaa")
+EOF
+ocamlfind ocamlc -package str -linkpkg -o test_link test_link.ml
+test "$(./test_link)" = "bbb" || {
+  echo "ERROR: str package link test did not produce 'bbb'"
+  exit 1
+}
+
 # Test topfind in OCaml toplevel (verifies path relocation works)
 echo "Testing topfind in toplevel..."
 # Use echo with heredoc for better compatibility, capture output for debugging
@@ -64,6 +76,6 @@ echo "$TOPFIND_OUTPUT" | grep -q findlib || {
 }
 
 # Cleanup
-rm -f test_hello.ml test_hello test_hello_opt test_findlib test_findlib_opt
+rm -f test_hello.ml test_hello test_hello_opt test_findlib test_findlib_opt test_link.ml test_link
 
 echo "=== All native tests passed ==="
