@@ -68,7 +68,7 @@ def run_cmd(cmd, description, check=True):
 
 def check_binary_arch():
     """Verify ocamlfind binary architecture (for cross-compile)."""
-    print("\\n=== Test: Binary architecture ===")
+    print("\n=== Test: Binary architecture ===")
 
     ocamlfind_path = shutil.which("ocamlfind")
     if not ocamlfind_path:
@@ -90,7 +90,7 @@ def check_binary_arch():
             ["readelf", "-h", ocamlfind_path], "readelf", check=False
         )
         if ok:
-            for line in output.split("\\n"):
+            for line in output.split("\n"):
                 if "Class:" in line or "Machine:" in line:
                     print(f"  {line.strip()}")
 
@@ -100,7 +100,7 @@ def check_binary_arch():
 
 def test_basic_commands():
     """Test basic ocamlfind commands."""
-    print("\\n=== Test: Basic ocamlfind commands ===")
+    print("\n=== Test: Basic ocamlfind commands ===")
     errors = 0
 
     # Help
@@ -119,7 +119,7 @@ def test_basic_commands():
             print(f"[OK] ocamlfind {desc}")
             if not variant:
                 # Show some output for debugging
-                for line in output.split("\\n")[:5]:
+                for line in output.split("\n")[:5]:
                     if line.strip():
                         print(f"      {line}")
         else:
@@ -130,7 +130,7 @@ def test_basic_commands():
 
 def test_package_listing():
     """Test ocamlfind list and query."""
-    print("\\n=== Test: Package listing ===")
+    print("\n=== Test: Package listing ===")
     errors = 0
 
     # List packages
@@ -138,7 +138,7 @@ def test_package_listing():
     if ok:
         print("[OK] ocamlfind list")
         # Show package count
-        pkg_count = len([l for l in output.split("\\n") if l.strip()])
+        pkg_count = len([l for l in output.split("\n") if l.strip()])
         print(f"      Found {pkg_count} packages")
 
         # Verify findlib is in the list
@@ -172,7 +172,7 @@ def test_package_listing():
 
 def test_config_file():
     """Verify configuration file exists."""
-    print("\\n=== Test: Configuration file ===")
+    print("\n=== Test: Configuration file ===")
 
     conda_prefix = os.environ.get("CONDA_PREFIX", "")
     if not conda_prefix:
@@ -199,7 +199,7 @@ def test_config_file():
 
 def test_compiler_invocation():
     """Test ocamlfind can invoke compilers."""
-    print("\\n=== Test: Compiler invocation ===")
+    print("\n=== Test: Compiler invocation ===")
     errors = 0
 
     for compiler in ["ocamlc", "ocamlopt"]:
@@ -208,7 +208,7 @@ def test_compiler_invocation():
             f"{compiler} -version",
         )
         if ok:
-            version = output.strip().split("\\n")[0]
+            version = output.strip().split("\n")[0]
             print(f"[OK] ocamlfind {compiler}: {version}")
         else:
             errors += 1
@@ -218,7 +218,7 @@ def test_compiler_invocation():
 
 def test_compilation():
     """Test bytecode and native compilation."""
-    print("\\n=== Test: Compilation ===")
+    print("\n=== Test: Compilation ===")
 
     errors = 0
     test_dir = tempfile.mkdtemp(prefix="findlib_compile_")
@@ -232,10 +232,10 @@ def test_compilation():
 
         # Create test file
         with open("test_hello.ml", "w") as f:
-            f.write('print_endline "Hello from ocamlfind"\\n')
+            f.write('print_endline "Hello from ocamlfind"\n')
 
         # Bytecode compilation
-        print("\\n--- Bytecode compilation ---")
+        print("\n--- Bytecode compilation ---")
         ok, _ = run_cmd(
             ["ocamlfind", "ocamlc", "-o", f"test_hello{exe}", "test_hello.ml"],
             "bytecode compile",
@@ -251,7 +251,7 @@ def test_compilation():
             errors += 1
 
         # Native compilation
-        print("\\n--- Native compilation ---")
+        print("\n--- Native compilation ---")
         ok, _ = run_cmd(
             ["ocamlfind", "ocamlopt", "-o", f"test_hello_opt{exe}", "test_hello.ml"],
             "native compile",
@@ -267,7 +267,7 @@ def test_compilation():
             errors += 1
 
         # Linking with findlib package (bytecode)
-        print("\\n--- Package linking (bytecode) ---")
+        print("\n--- Package linking (bytecode) ---")
         ok, _ = run_cmd(
             [
                 "ocamlfind",
@@ -292,7 +292,7 @@ def test_compilation():
             errors += 1
 
         # Linking with findlib package (native)
-        print("\\n--- Package linking (native) ---")
+        print("\n--- Package linking (native) ---")
         ok, _ = run_cmd(
             [
                 "ocamlfind",
@@ -325,9 +325,68 @@ def test_compilation():
     return errors == 0
 
 
+def test_str_package():
+    """Test the str package (META resolution, compile, link, run)."""
+    print("\n=== Test: Str package ===")
+
+    errors = 0
+
+    # Subject: a META file findlib ships for an OCaml stdlib library
+    ok, _ = run_cmd(["ocamlfind", "query", "str"], "query str")
+    if ok:
+        print("[OK] ocamlfind query str")
+    else:
+        errors += 1
+
+    test_dir = tempfile.mkdtemp(prefix="findlib_str_")
+    original_dir = os.getcwd()
+
+    # Executable extension
+    exe = ".exe" if platform.system() == "Windows" else ""
+
+    try:
+        os.chdir(test_dir)
+
+        # Create test file
+        with open("test_link.ml", "w") as f:
+            f.write(
+                'let () = print_string (Str.global_replace (Str.regexp "a") "b" "aaa")\n'
+            )
+
+        # End-to-end compile and link through the ocamlfind driver.
+        ok, _ = run_cmd(
+            [
+                "ocamlfind",
+                "ocamlc",
+                "-package",
+                "str",
+                "-linkpkg",
+                "-o",
+                f"test_link{exe}",
+                "test_link.ml",
+            ],
+            "compile with str",
+        )
+        if ok:
+            ok, output = run_cmd([f"./test_link{exe}"], "run with str")
+            if ok and "bbb" in output:
+                print("[OK] Str package compile, link and run")
+            else:
+                print("[FAIL] Str package execution")
+                errors += 1
+        else:
+            errors += 1
+
+    finally:
+        os.chdir(original_dir)
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    return errors == 0
+
+
 def test_topfind():
     """Test topfind in OCaml toplevel."""
-    print("\\n=== Test: Topfind in toplevel ===")
+    print("\n=== Test: Topfind in toplevel ===")
 
     # Skip on Windows - toplevel behavior differs
     if platform.system() == "Windows":
@@ -335,7 +394,7 @@ def test_topfind():
         return True
 
     # Run OCaml toplevel with topfind commands
-    toplevel_input = '#use "topfind";;\\n#list;;\\n#quit;;\\n'
+    toplevel_input = '#use "topfind";;\n#list;;\n#quit;;\n'
 
     result = subprocess.run(
         ["ocaml", "-stdin"],
@@ -347,7 +406,7 @@ def test_topfind():
 
     output = result.stdout + result.stderr
     print("  Toplevel output (first 500 chars):")
-    for line in output[:500].split("\\n"):
+    for line in output[:500].split("\n"):
         if line.strip():
             print(f"    {line}")
 
@@ -389,6 +448,9 @@ def main():
         print(f"[WARN] Compilation tests failed: {e}")
         print("  (May be expected on cross-compile with QEMU)")
 
+    # Str package test (ported from the unix-only recipe test block)
+    all_ok &= test_str_package()
+
     # Topfind test
     try:
         all_ok &= test_topfind()
@@ -396,10 +458,10 @@ def main():
         print(f"[WARN] Topfind test failed: {e}")
 
     if all_ok:
-        print("\\n=== All ocaml-findlib tests passed ===")
+        print("\n=== All ocaml-findlib tests passed ===")
         return 0
     else:
-        print("\\n=== Some ocaml-findlib tests FAILED ===")
+        print("\n=== Some ocaml-findlib tests FAILED ===")
         return 1
 
 
