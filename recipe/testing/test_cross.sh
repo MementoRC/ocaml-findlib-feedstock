@@ -32,4 +32,10 @@ ocamlfind query findlib
 echo "Testing ocamlfind query str..."
 ocamlfind query str
 
+echo "Verifying findlib.conf does not reference ocaml-cross-compilers..."
+if grep -q "ocaml-cross-compilers" "${PREFIX}/etc/findlib.conf"; then
+  echo "FAIL: findlib.conf contains forbidden reference to ocaml-cross-compilers"
+  exit 1
+fi
+
 echo "=== All cross-compilation tests passed ==="

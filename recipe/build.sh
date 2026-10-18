@@ -48,6 +48,13 @@ if [[ "${target_platform}" == win-* ]]; then
   # Replace build_env with h_env in Makefile.config, keep forward slashes
   sed -i 's@build_env@h_env@g' "${LIBRARY_PREFIX}"/lib/ocaml/site-lib/findlib/Makefile.config
 else
+  # Cross: configure takes the stdlib from ocamlc -where, the cross stdlib under
+  # BUILD_PREFIX; topfind is installed there and findlib.conf's path names it
+  if [[ "${build_platform}" != "${target_platform}" ]]; then
+    OCAML_STDLIB="$(ocamlc -where)"
+    mv "${OCAML_STDLIB}/topfind" "${PREFIX}/lib/ocaml/"
+    sed -i "s@${OCAML_STDLIB}@${PREFIX}/lib/ocaml@g" "${PREFIX}"/etc/findlib.conf "${PREFIX}"/lib/ocaml/site-lib/findlib/Makefile.config
+  fi
   sed -i "s@${BUILD_PREFIX}@${PREFIX}@g" "${PREFIX}"/etc/findlib.conf "${PREFIX}"/lib/ocaml/site-lib/findlib/Makefile.config
 fi
 

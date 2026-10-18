@@ -37,6 +37,9 @@ build:
 requirements:
   build:
     - ${{ compiler('ocaml') }} ${{ c_toolchain }}
+    - if: unix and build_platform != target_platform
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.*
     - if: not unix and c_compiler == "gcc"
       then:
         - ${{ stdlib("m2w64_c") }}
@@ -46,8 +49,15 @@ requirements:
     - ${{ m2 }}make
     - ${{ m2 }}sed
     - ${{ m2 }}grep
+  host:
+    - ocaml ${{ ocaml_compiler_version }}.*
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
   run_constraints:
-    - ocaml_${{ target_platform }} >=${{ ocaml_compiler_version }} ${{ c_toolchain }}
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
 
 tests:
   - package_contents:
@@ -119,6 +129,9 @@ tests:
         - python testing/test-findlib.py
       requirements:
         run:
+          - if: c_compiler != "gcc"
+            then:
+              - ${{ compiler('c') }}
           - python >=3.9
           - ocaml-compiler
       files:
